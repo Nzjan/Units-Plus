@@ -458,17 +458,20 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
           // Fixed Center Overlay
           SizedBox(
             height: _tileHeight,
-            child: Container(
-              color: isLeft ? const Color(0xFF1565C0) : Colors.grey.shade400,
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              child: isLeft
-                  ? _buildLeftOverlay(
-                      selectedIndex,
-                      inputValue,
-                      feetValue,
-                      inchValue,
-                    )
-                  : _buildRightOverlay(selectedIndex, resultValue),
+            child: IgnorePointer(
+              ignoring: true,
+              child: Container(
+                color: isLeft ? const Color(0xFF1565C0) : Colors.grey.shade400,
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                child: isLeft
+                    ? _buildLeftOverlay(
+                        selectedIndex,
+                        inputValue,
+                        feetValue,
+                        inchValue,
+                      )
+                    : _buildRightOverlay(selectedIndex, resultValue),
+              ),
             ),
           ),
         ],
@@ -994,7 +997,11 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
         } else if (key == "AC") {
           return _numpadTextButton(key, const Color(0xFFF57C00));
         } else if (key == "+/-") {
-          return _numpadTextButton(key, const Color(0xFF1E88E5));
+          return _numpadTextButton(
+            key,
+            const Color(0xFF1E88E5),
+            isEnabled: false,
+          );
         } else {
           return _numpadTextButton(key, const Color(0xFF1565C0));
         }
@@ -1002,7 +1009,7 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
     );
   }
 
-  Widget _numpadTextButton(String text, Color color) {
+  Widget _numpadTextButton(String text, Color color, {bool isEnabled = true}) {
     return Expanded(
       child: Padding(
         padding: EdgeInsets.all(2.w),
@@ -1010,7 +1017,8 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
           color: color,
           borderRadius: BorderRadius.circular(4.r),
           child: InkWell(
-            onTap: () => onKeyTap(text),
+            onTap: isEnabled ? () => onKeyTap(text) : null,
+            // onTap: () => onKeyTap(text),
             child: Center(
               child: Text(
                 text,
