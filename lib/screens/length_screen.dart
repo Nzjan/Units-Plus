@@ -1,14 +1,89 @@
 // ---------------- LENGTH SCREEN (FEET-INCH SUPPORT) ----------------
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class LengthScreen extends StatefulWidget {
+// Providers for state management
+final fromIndexProvider = StateProvider<int>((ref) => 0);
+final toIndexProvider = StateProvider<int>((ref) => 2);
+final inputValueProvider = StateProvider<String>((ref) => "100");
+final feetValueProvider = StateProvider<String>((ref) => "0");
+final inchValueProvider = StateProvider<String>((ref) => "0");
+final activeFieldProvider = StateProvider<String>((ref) => "feet");
+
+// Result calculation provider
+final resultValueProvider = Provider<String>((ref) {
+  final units = [
+    {'name': 'Mile', 'symbol': 'mi', 'factor': 1609.344},
+    {'name': 'Yard', 'symbol': 'yd', 'factor': 0.9144},
+    {'name': 'Kilometer', 'symbol': 'km', 'factor': 1000.0},
+    {'name': 'Meter', 'symbol': 'm', 'factor': 1.0},
+    {'name': 'Feet', 'symbol': 'ft', 'factor': 0.3048},
+    {'name': 'Inch', 'symbol': 'in', 'factor': 0.0254},
+    {
+      'name': 'Feet-Inch',
+      'symbol': 'ft-in',
+      'factor': {'feet': 0.3048, 'inch': 0.0254},
+    },
+    {'name': 'Decimeter', 'symbol': 'dm', 'factor': 0.1},
+    {'name': 'Nautical Mile', 'symbol': 'nmi', 'factor': 1852.0},
+    {'name': 'Centimeter', 'symbol': 'cm', 'factor': 0.01},
+  ];
+
+  final fromIndex = ref.watch(fromIndexProvider);
+  final toIndex = ref.watch(toIndexProvider);
+  final inputValue = ref.watch(inputValueProvider);
+  final feetValue = ref.watch(feetValueProvider);
+  final inchValue = ref.watch(inchValueProvider);
+
+  bool fromIsFeetInch = units[fromIndex]['name'] == 'Feet-Inch';
+  bool toIsFeetInch = units[toIndex]['name'] == 'Feet-Inch';
+
+  String formatNumber(double num) {
+    if (num == num.roundToDouble()) return num.toInt().toString();
+    return num.toStringAsFixed(
+      4,
+    ).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  if (fromIsFeetInch) {
+    double feet = double.tryParse(feetValue) ?? 0;
+    double inches = double.tryParse(inchValue) ?? 0;
+    double totalMeters = (feet * 0.3048) + (inches * 0.0254);
+
+    if (toIsFeetInch) return "${feetValue}ft-${inchValue}in";
+
+    double toFactor = units[toIndex]['factor'] as double;
+    double result = totalMeters / toFactor;
+
+    return formatNumber(result);
+  } else if (toIsFeetInch) {
+    double input = double.tryParse(inputValue) ?? 0;
+    double fromFactor = units[fromIndex]['factor'] as double;
+    double totalMeters = input * fromFactor;
+
+    double totalInches = totalMeters / 0.0254;
+    int feet = totalInches ~/ 12;
+    double remainingInches = totalInches % 12;
+
+    return "${feet}ft-${formatNumber(remainingInches)}in";
+  } else {
+    double input = double.tryParse(inputValue) ?? 0;
+    double fromFactor = units[fromIndex]['factor'] as double;
+    double toFactor = units[toIndex]['factor'] as double;
+    double result = (input * fromFactor) / toFactor;
+
+    return formatNumber(result);
+  }
+});
+
+class LengthScreen extends ConsumerStatefulWidget {
   const LengthScreen({super.key});
 
   @override
-  State<LengthScreen> createState() => _LengthScreenState();
+  ConsumerState<LengthScreen> createState() => _LengthScreenState();
 }
 
-class _LengthScreenState extends State<LengthScreen> {
+class _LengthScreenState extends ConsumerState<LengthScreen> {
   // Data for Length Units
   final List<Map<String, dynamic>> units = [
     {'name': 'Mile', 'symbol': 'mi', 'factor': 1609.344},
@@ -16,94 +91,32 @@ class _LengthScreenState extends State<LengthScreen> {
     {'name': 'Kilometer', 'symbol': 'km', 'factor': 1000.0},
     {'name': 'Meter', 'symbol': 'm', 'factor': 1.0},
     {'name': 'Feet', 'symbol': 'ft', 'factor': 0.3048},
-
     {'name': 'Inch', 'symbol': 'in', 'factor': 0.0254},
     {
       'name': 'Feet-Inch',
       'symbol': 'ft-in',
-      'factor': {'feet': 0.3048, 'inch': 0.0254}, // Special composite unit
+      'factor': {'feet': 0.3048, 'inch': 0.0254},
     },
     {'name': 'Decimeter', 'symbol': 'dm', 'factor': 0.1},
     {'name': 'Nautical Mile', 'symbol': 'nmi', 'factor': 1852.0},
     {'name': 'Centimeter', 'symbol': 'cm', 'factor': 0.01},
   ];
 
-  // State
-  String inputValue = "100";
-  String feetValue = "0";
-  String inchValue = "0";
-
-  int fromIndex = 0; // Mile
-  int toIndex = 2; // Kilometer
-
-  // Track which field is active on numpad
-  String _activeField = "feet";
-
   // Scroll controllers
   final ScrollController _leftController = ScrollController();
   final ScrollController _rightController = ScrollController();
 
   // Fixed height per tile
-  static const double _tileHeight = 76;
+  static const double _tileHeight = 67;
   static const double _listHeight = 275.0;
   static const double _paddingSize = _tileHeight * 2;
-
-  // ✅ REAL CONVERSION LOGIC
-  String get resultValue {
-    // Check if FROM is Feet-Inch
-    bool fromIsFeetInch = units[fromIndex]['name'] == 'Feet-Inch';
-    bool toIsFeetInch = units[toIndex]['name'] == 'Feet-Inch';
-
-    // Helper to format decimals nicely
-    String formatNumber(double num) {
-      if (num == num.roundToDouble()) return num.toInt().toString();
-      return num.toStringAsFixed(
-        4,
-      ).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
-    }
-
-    if (fromIsFeetInch) {
-      // Convert Feet-Inch to meters
-      double feet = double.tryParse(feetValue) ?? 0;
-      double inches = double.tryParse(inchValue) ?? 0;
-      double totalMeters = (feet * 0.3048) + (inches * 0.0254);
-
-      if (toIsFeetInch)
-        return "${feetValue}ft-${inchValue}in"; // Same unit, echo back
-
-      double toFactor = units[toIndex]['factor'] as double;
-      double result = totalMeters / toFactor;
-
-      return formatNumber(result);
-    } else if (toIsFeetInch) {
-      // Convert regular unit to Feet-Inch (split into feet and inches)
-      double input = double.tryParse(inputValue) ?? 0;
-      double fromFactor = units[fromIndex]['factor'] as double;
-      double totalMeters = input * fromFactor;
-
-      // Convert to total inches
-      double totalInches = totalMeters / 0.0254;
-
-      // Split into feet and inches
-      int feet = totalInches ~/ 12; // Integer division
-      double remainingInches = totalInches % 12;
-
-      return "${feet}ft-${formatNumber(remainingInches)}in";
-    } else {
-      // Regular to Regular
-      double input = double.tryParse(inputValue) ?? 0;
-      double fromFactor = units[fromIndex]['factor'] as double;
-      double toFactor = units[toIndex]['factor'] as double;
-      double result = (input * fromFactor) / toFactor;
-
-      return formatNumber(result);
-    }
-  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final fromIndex = ref.read(fromIndexProvider);
+      final toIndex = ref.read(toIndexProvider);
       _leftController.jumpTo(_tileHeight * fromIndex);
       _rightController.jumpTo(_tileHeight * toIndex);
     });
@@ -117,74 +130,94 @@ class _LengthScreenState extends State<LengthScreen> {
   }
 
   void onKeyTap(String key) {
-    setState(() {
-      // Determine if Feet-Inch is selected on left
-      bool fromIsFeetInch = units[fromIndex]['name'] == 'Feet-Inch';
+    final fromIsFeetInch =
+        units[ref.read(fromIndexProvider)]['name'] == 'Feet-Inch';
 
-      if (fromIsFeetInch) {
-        // Update feet or inches field
-        if (_activeField == "feet") {
-          if (key == "AC") {
-            feetValue = "";
-          } else if (key == "⌫") {
-            if (feetValue.isNotEmpty)
-              feetValue = feetValue.substring(0, feetValue.length - 1);
-          } else if (key == "+/-") {
-            feetValue = feetValue.startsWith("-")
-                ? feetValue.substring(1)
-                : "-$feetValue";
-          } else if (key == ".") {
-            if (!feetValue.contains(".")) feetValue += ".";
-          } else {
-            if (feetValue == "0")
-              feetValue = key;
-            else
-              feetValue += key;
-          }
+    if (fromIsFeetInch) {
+      final activeField = ref.read(activeFieldProvider);
+
+      if (activeField == "feet") {
+        final feetValue = ref.read(feetValueProvider);
+        if (key == "AC") {
+          ref.read(feetValueProvider.notifier).state = "";
+        } else if (key == "⌫") {
+          if (feetValue.isNotEmpty)
+            ref.read(feetValueProvider.notifier).state = feetValue.substring(
+              0,
+              feetValue.length - 1,
+            );
+        } else if (key == "+/-") {
+          ref.read(feetValueProvider.notifier).state = feetValue.startsWith("-")
+              ? feetValue.substring(1)
+              : "-$feetValue";
+        } else if (key == ".") {
+          if (!feetValue.contains("."))
+            ref.read(feetValueProvider.notifier).state = feetValue + ".";
         } else {
-          if (key == "AC") {
-            inchValue = "";
-          } else if (key == "⌫") {
-            if (inchValue.isNotEmpty)
-              inchValue = inchValue.substring(0, inchValue.length - 1);
-          } else if (key == "+/-") {
-            inchValue = inchValue.startsWith("-")
-                ? inchValue.substring(1)
-                : "-$inchValue";
-          } else if (key == ".") {
-            if (!inchValue.contains(".")) inchValue += ".";
-          } else {
-            if (inchValue == "0")
-              inchValue = key;
-            else
-              inchValue += key;
-          }
+          if (feetValue == "0")
+            ref.read(feetValueProvider.notifier).state = key;
+          else
+            ref.read(feetValueProvider.notifier).state = feetValue + key;
         }
       } else {
-        // Normal input
+        final inchValue = ref.read(inchValueProvider);
         if (key == "AC") {
-          inputValue = "";
+          ref.read(inchValueProvider.notifier).state = "";
         } else if (key == "⌫") {
-          if (inputValue.isNotEmpty)
-            inputValue = inputValue.substring(0, inputValue.length - 1);
+          if (inchValue.isNotEmpty)
+            ref.read(inchValueProvider.notifier).state = inchValue.substring(
+              0,
+              inchValue.length - 1,
+            );
         } else if (key == "+/-") {
-          inputValue = inputValue.startsWith("-")
-              ? inputValue.substring(1)
-              : "-$inputValue";
+          ref.read(inchValueProvider.notifier).state = inchValue.startsWith("-")
+              ? inchValue.substring(1)
+              : "-$inchValue";
         } else if (key == ".") {
-          if (!inputValue.contains(".")) inputValue += ".";
+          if (!inchValue.contains("."))
+            ref.read(inchValueProvider.notifier).state = inchValue + ".";
         } else {
-          if (inputValue == "0")
-            inputValue = key;
+          if (inchValue == "0")
+            ref.read(inchValueProvider.notifier).state = key;
           else
-            inputValue += key;
+            ref.read(inchValueProvider.notifier).state = inchValue + key;
         }
       }
-    });
+    } else {
+      final inputValue = ref.read(inputValueProvider);
+      if (key == "AC") {
+        ref.read(inputValueProvider.notifier).state = "";
+      } else if (key == "⌫") {
+        if (inputValue.isNotEmpty)
+          ref.read(inputValueProvider.notifier).state = inputValue.substring(
+            0,
+            inputValue.length - 1,
+          );
+      } else if (key == "+/-") {
+        ref.read(inputValueProvider.notifier).state = inputValue.startsWith("-")
+            ? inputValue.substring(1)
+            : "-$inputValue";
+      } else if (key == ".") {
+        if (!inputValue.contains("."))
+          ref.read(inputValueProvider.notifier).state = inputValue + ".";
+      } else {
+        if (inputValue == "0")
+          ref.read(inputValueProvider.notifier).state = key;
+        else
+          ref.read(inputValueProvider.notifier).state = inputValue + key;
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final fromIndex = ref.watch(fromIndexProvider);
+    final toIndex = ref.watch(toIndexProvider);
+    final inputValue = ref.watch(inputValueProvider);
+    final feetValue = ref.watch(feetValueProvider);
+    final inchValue = ref.watch(inchValueProvider);
+    final resultValue = ref.watch(resultValueProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -203,7 +236,7 @@ class _LengthScreenState extends State<LengthScreen> {
         children: [
           // 1. FIXED CENTER LIST AREA
           Expanded(
-            flex: 7,
+            flex: 5,
             child: SizedBox(
               height: _listHeight,
               child: Row(
@@ -214,11 +247,14 @@ class _LengthScreenState extends State<LengthScreen> {
                       controller: _leftController,
                       isLeft: true,
                       selectedIndex: fromIndex,
+                      inputValue: inputValue,
+                      feetValue: feetValue,
+                      inchValue: inchValue,
+                      resultValue: resultValue,
                       onSelected: (index) {
-                        setState(() => fromIndex = index);
-                        // When switching to Feet-Inch, default active field to "feet"
+                        ref.read(fromIndexProvider.notifier).state = index;
                         if (units[index]['name'] == 'Feet-Inch') {
-                          _activeField = "feet";
+                          ref.read(activeFieldProvider.notifier).state = "feet";
                         }
                       },
                     ),
@@ -233,8 +269,12 @@ class _LengthScreenState extends State<LengthScreen> {
                       controller: _rightController,
                       isLeft: false,
                       selectedIndex: toIndex,
+                      inputValue: inputValue,
+                      feetValue: feetValue,
+                      inchValue: inchValue,
+                      resultValue: resultValue,
                       onSelected: (index) {
-                        setState(() => toIndex = index);
+                        ref.read(toIndexProvider.notifier).state = index;
                       },
                     ),
                   ),
@@ -261,18 +301,18 @@ class _LengthScreenState extends State<LengthScreen> {
                           Icons.swap_horiz,
                           Colors.grey.shade600,
                           onTap: () {
-                            setState(() {
-                              int temp = fromIndex;
-                              fromIndex = toIndex;
-                              toIndex = temp;
-                            });
+                            final temp = fromIndex;
+                            ref.read(fromIndexProvider.notifier).state =
+                                toIndex;
+                            ref.read(toIndexProvider.notifier).state = temp;
+
                             _leftController.animateTo(
-                              _tileHeight * fromIndex,
+                              _tileHeight * toIndex,
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOut,
                             );
                             _rightController.animateTo(
-                              _tileHeight * toIndex,
+                              _tileHeight * temp,
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOut,
                             );
@@ -298,20 +338,33 @@ class _LengthScreenState extends State<LengthScreen> {
   }
 
   // Builds a scrollable list with 2 blank spaces top/bottom, fixed center overlay
-  // FIXED: Only updates selectedIndex when scrolling is complete (finger released)
   Widget _buildCenteredList({
     required ScrollController controller,
     required bool isLeft,
     required int selectedIndex,
+    required String inputValue,
+    required String feetValue,
+    required String inchValue,
+    required String resultValue,
     required void Function(int) onSelected,
   }) {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
-        // Only update selection when scrolling has ended (finger released)
         if (notification is ScrollEndNotification) {
           double offset = notification.metrics.pixels;
           int index = (offset / _tileHeight).round();
           index = index.clamp(0, units.length - 1);
+
+          // Snap to exact position
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (controller.hasClients) {
+              controller.animateTo(
+                _tileHeight * index,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+              );
+            }
+          });
 
           if (index != selectedIndex) {
             onSelected(index);
@@ -340,7 +393,6 @@ class _LengthScreenState extends State<LengthScreen> {
                 },
                 child: Container(
                   height: _tileHeight,
-
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border(
@@ -365,7 +417,6 @@ class _LengthScreenState extends State<LengthScreen> {
                           ),
                         ),
                       ),
-
                       Align(
                         alignment: Alignment.bottomRight,
                         child: Text(
@@ -390,8 +441,13 @@ class _LengthScreenState extends State<LengthScreen> {
               color: isLeft ? const Color(0xFF1565C0) : Colors.grey.shade400,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: isLeft
-                  ? _buildLeftOverlay(selectedIndex)
-                  : _buildRightOverlay(selectedIndex),
+                  ? _buildLeftOverlay(
+                      selectedIndex,
+                      inputValue,
+                      feetValue,
+                      inchValue,
+                    )
+                  : _buildRightOverlay(selectedIndex, resultValue),
             ),
           ),
         ],
@@ -400,21 +456,27 @@ class _LengthScreenState extends State<LengthScreen> {
   }
 
   // LEFT OVERLAY: Blue box
-  Widget _buildLeftOverlay(int selectedIndex) {
+  Widget _buildLeftOverlay(
+    int selectedIndex,
+    String inputValue,
+    String feetValue,
+    String inchValue,
+  ) {
     bool isFeetInch = units[selectedIndex]['name'] == 'Feet-Inch';
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Spacer(),
         if (isFeetInch)
-          // TWO INPUT FIELDS (Feet + Inch)
           Row(
             children: [
               // Feet Field
               Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() => _activeField = "feet"),
+                  onTap: () =>
+                      ref.read(activeFieldProvider.notifier).state = "feet",
                   child: SizedBox(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -422,7 +484,10 @@ class _LengthScreenState extends State<LengthScreen> {
                       children: [
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 2,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
                               color: Colors.black,
@@ -432,7 +497,7 @@ class _LengthScreenState extends State<LengthScreen> {
                               feetValue.isEmpty ? "0" : feetValue,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 22,
+                                fontSize: 28,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -452,7 +517,8 @@ class _LengthScreenState extends State<LengthScreen> {
               // Inch Field
               Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() => _activeField = "inch"),
+                  onTap: () =>
+                      ref.read(activeFieldProvider.notifier).state = "inch",
                   child: SizedBox(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -460,7 +526,10 @@ class _LengthScreenState extends State<LengthScreen> {
                       children: [
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 2,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
                               color: Colors.grey,
@@ -470,7 +539,7 @@ class _LengthScreenState extends State<LengthScreen> {
                               inchValue.isEmpty ? "0" : inchValue,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 22,
+                                fontSize: 28,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -495,12 +564,12 @@ class _LengthScreenState extends State<LengthScreen> {
               inputValue.isEmpty ? "0" : inputValue,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-        const SizedBox(height: 2),
+        Spacer(),
         // Unit name
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -520,12 +589,10 @@ class _LengthScreenState extends State<LengthScreen> {
   }
 
   // RIGHT OVERLAY: Grey box
-  Widget _buildRightOverlay(int selectedIndex) {
+  Widget _buildRightOverlay(int selectedIndex, String resultValue) {
     bool isFeetInch = units[selectedIndex]['name'] == 'Feet-Inch';
 
-    // If right side is Feet-Inch, split the result
     if (isFeetInch) {
-      // Parse the result string "Xft-Yin"
       String res = resultValue;
       List<String> parts = res.split('-');
       String ftPart = parts[0].replaceAll('ft', '');
@@ -535,7 +602,7 @@ class _LengthScreenState extends State<LengthScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Two values: Feet and Inches
+          Spacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -544,7 +611,7 @@ class _LengthScreenState extends State<LengthScreen> {
                 ftPart,
                 style: const TextStyle(
                   color: Colors.black,
-                  fontSize: 22,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -554,11 +621,20 @@ class _LengthScreenState extends State<LengthScreen> {
                 style: TextStyle(color: Colors.black87, fontSize: 12),
               ),
               const SizedBox(width: 8),
+              Align(
+                alignment: Alignment.center,
+                child: const Text(
+                  "-",
+                  style: TextStyle(color: Colors.black, fontSize: 28),
+                ),
+              ),
+
+              const SizedBox(width: 8),
               Text(
                 inPart,
                 style: const TextStyle(
                   color: Colors.black,
-                  fontSize: 22,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -569,8 +645,7 @@ class _LengthScreenState extends State<LengthScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 2),
-          // Unit name
+          Spacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -589,20 +664,20 @@ class _LengthScreenState extends State<LengthScreen> {
       );
     }
 
-    // Normal result
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
+        Spacer(),
         Text(
           resultValue,
           style: const TextStyle(
             color: Colors.black,
-            fontSize: 22,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 2),
+        Spacer(),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
