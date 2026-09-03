@@ -28,6 +28,7 @@ final resultValueProvider = Provider<String>((ref) {
     {'name': 'Decimeter', 'symbol': 'dm', 'factor': 0.1},
     {'name': 'Nautical Mile', 'symbol': 'nmi', 'factor': 1852.0},
     {'name': 'Centimeter', 'symbol': 'cm', 'factor': 0.01},
+    {'name': 'Millimeter', 'symbol': 'mm', 'factor': 0.001},
   ];
 
   final fromIndex = ref.watch(fromIndexProvider);
@@ -101,6 +102,7 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
     {'name': 'Decimeter', 'symbol': 'dm', 'factor': 0.1},
     {'name': 'Nautical Mile', 'symbol': 'nmi', 'factor': 1852.0},
     {'name': 'Centimeter', 'symbol': 'cm', 'factor': 0.01},
+    {'name': 'Millimeter', 'symbol': 'mm', 'factor': 0.001},
   ];
 
   // Scroll controllers
