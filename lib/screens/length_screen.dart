@@ -142,71 +142,95 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
         if (key == "AC") {
           ref.read(feetValueProvider.notifier).state = "";
         } else if (key == "⌫") {
-          if (feetValue.isNotEmpty)
+          if (feetValue.isNotEmpty) {
             ref.read(feetValueProvider.notifier).state = feetValue.substring(
               0,
               feetValue.length - 1,
             );
+          }
         } else if (key == "+/-") {
           ref.read(feetValueProvider.notifier).state = feetValue.startsWith("-")
               ? feetValue.substring(1)
               : "-$feetValue";
         } else if (key == ".") {
-          if (!feetValue.contains("."))
+          if (!feetValue.contains(".")) {
             ref.read(feetValueProvider.notifier).state = feetValue + ".";
+          }
         } else {
-          if (feetValue == "0")
+          if (feetValue == "0") {
             ref.read(feetValueProvider.notifier).state = key;
-          else
+          } else {
             ref.read(feetValueProvider.notifier).state = feetValue + key;
+          }
         }
       } else {
         final inchValue = ref.read(inchValueProvider);
         if (key == "AC") {
           ref.read(inchValueProvider.notifier).state = "";
         } else if (key == "⌫") {
-          if (inchValue.isNotEmpty)
+          if (inchValue.isNotEmpty) {
             ref.read(inchValueProvider.notifier).state = inchValue.substring(
               0,
               inchValue.length - 1,
             );
+          }
         } else if (key == "+/-") {
           ref.read(inchValueProvider.notifier).state = inchValue.startsWith("-")
               ? inchValue.substring(1)
               : "-$inchValue";
         } else if (key == ".") {
-          if (!inchValue.contains("."))
+          if (!inchValue.contains(".")) {
             ref.read(inchValueProvider.notifier).state = inchValue + ".";
+          }
         } else {
-          if (inchValue == "0")
+          if (inchValue == "0") {
             ref.read(inchValueProvider.notifier).state = key;
-          else
+          } else {
             ref.read(inchValueProvider.notifier).state = inchValue + key;
+          }
         }
+        _normalizeFeetInch();
       }
     } else {
       final inputValue = ref.read(inputValueProvider);
       if (key == "AC") {
         ref.read(inputValueProvider.notifier).state = "";
       } else if (key == "⌫") {
-        if (inputValue.isNotEmpty)
+        if (inputValue.isNotEmpty) {
           ref.read(inputValueProvider.notifier).state = inputValue.substring(
             0,
             inputValue.length - 1,
           );
+        }
       } else if (key == "+/-") {
         ref.read(inputValueProvider.notifier).state = inputValue.startsWith("-")
             ? inputValue.substring(1)
             : "-$inputValue";
       } else if (key == ".") {
-        if (!inputValue.contains("."))
+        if (!inputValue.contains(".")) {
           ref.read(inputValueProvider.notifier).state = inputValue + ".";
+        }
       } else {
-        if (inputValue == "0")
+        if (inputValue == "0") {
           ref.read(inputValueProvider.notifier).state = key;
-        else
+        } else {
           ref.read(inputValueProvider.notifier).state = inputValue + key;
+        }
       }
+    }
+  }
+
+  void _normalizeFeetInch() {
+    double feet = double.tryParse(ref.read(feetValueProvider)) ?? 0;
+    double inches = double.tryParse(ref.read(inchValueProvider)) ?? 0;
+
+    // 12 inches भएमा feet मा convert गर्ने
+    if (inches >= 12) {
+      feet += (inches / 12).floor();
+      inches = inches % 12;
+
+      ref.read(feetValueProvider.notifier).state = feet.toString();
+      ref.read(inchValueProvider.notifier).state = inches.toString();
     }
   }
 
@@ -458,7 +482,21 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
     String inchValue,
   ) {
     bool isFeetInch = units[selectedIndex]['name'] == 'Feet-Inch';
+    // Feet-Inch input लाई normalize गर्ने
+    if (isFeetInch) {
+      double feet = double.tryParse(feetValue) ?? 0;
+      double inches = double.tryParse(inchValue) ?? 0;
 
+      // 12 inches भएमा feet मा convert गर्ने
+      if (inches >= 12) {
+        feet += (inches / 12).floor();
+        inches = inches % 12;
+
+        // State update गर्ने
+        ref.read(feetValueProvider.notifier).state = feet.toString();
+        ref.read(inchValueProvider.notifier).state = inches.toString();
+      }
+    }
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,7 +548,6 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                                 ];
 
                                 double selectedFontSize = baseFontSize;
-                                int selectedLines = 1;
 
                                 for (int i = 0; i < fontSizes.length; i++) {
                                   double charWidth = fontSizes[i] * 0.6;
@@ -525,7 +562,6 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
 
                                   if (estimatedLines <= (i + 1)) {
                                     selectedFontSize = fontSizes[i];
-                                    selectedLines = estimatedLines;
                                     break;
                                   }
                                 }
@@ -602,7 +638,6 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                                 ];
 
                                 double selectedFontSize = baseFontSize;
-                                int selectedLines = 1;
 
                                 for (int i = 0; i < fontSizes.length; i++) {
                                   double charWidth = fontSizes[i] * 0.6;
@@ -617,7 +652,6 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
 
                                   if (estimatedLines <= (i + 1)) {
                                     selectedFontSize = fontSizes[i];
-                                    selectedLines = estimatedLines;
                                     break;
                                   }
                                 }
@@ -673,7 +707,6 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                   ];
 
                   double selectedFontSize = baseFontSize;
-                  int selectedLines = 1;
 
                   for (int i = 0; i < fontSizes.length; i++) {
                     double charWidth = fontSizes[i] * 0.6;
@@ -686,7 +719,6 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
 
                     if (estimatedLines <= (i + 1)) {
                       selectedFontSize = fontSizes[i];
-                      selectedLines = estimatedLines;
                       break;
                     }
                   }
@@ -733,8 +765,12 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
     if (isFeetInch) {
       String res = resultValue;
       List<String> parts = res.split('-');
-      String ftPart = parts[0].replaceAll('ft', '0');
-      String inPart = parts[1].replaceAll('in', '0');
+      String ftPart = parts[0].replaceAll('ft', '').trim();
+      String inPart = parts[1].replaceAll('in', '').trim();
+
+      // Ensure defaults
+      if (ftPart.isEmpty) ftPart = "0";
+      if (inPart.isEmpty) inPart = "0";
 
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -745,60 +781,110 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                height: 40.h, // Fixed height
-                constraints: BoxConstraints(maxWidth: 80.w, minWidth: 40.w),
-                alignment: Alignment.bottomRight,
-                child: Text(
-                  ftPart,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SizedBox(width: 2.w),
+              // FT + IN combined with adaptive scaling
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Combine ft and in into single text for calculation
+                    String combinedText = "$ftPart ft $inPart in";
+                    double baseFontSize = 28.sp;
 
-              Text(
-                "ft",
-                style: TextStyle(color: Colors.black87, fontSize: 12.sp),
-              ),
-              SizedBox(width: 8.w),
-              Align(
-                alignment: Alignment.center,
-                child: Text(
-                  "-",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Container(
-                height: 40.h, // Fixed height
-                constraints: BoxConstraints(maxWidth: 80.w, minWidth: 40.w),
-                alignment: Alignment.bottomRight,
-                child: Text(
-                  inPart,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                    List<double> fontSizes = [
+                      baseFontSize,
+                      baseFontSize * 0.5,
+                      baseFontSize * 0.3333,
+                      baseFontSize * 0.25,
+                      baseFontSize * 0.2,
+                      baseFontSize * 0.1667,
+                    ];
+
+                    double selectedFontSize = baseFontSize;
+
+                    for (int i = 0; i < fontSizes.length; i++) {
+                      double charWidth = fontSizes[i] * 0.6;
+                      int charsPerLine = (constraints.maxWidth / charWidth)
+                          .floor();
+                      if (charsPerLine < 1) charsPerLine = 1;
+
+                      int estimatedLines = (combinedText.length / charsPerLine)
+                          .ceil();
+                      if (estimatedLines < 1) estimatedLines = 1;
+
+                      if (estimatedLines <= (i + 1)) {
+                        selectedFontSize = fontSizes[i];
+                        break;
+                      }
+                    }
+
+                    // return Text(
+                    //   "$ftPart ft - $inPart in",
+                    //   maxLines: 6,
+                    //   textAlign: TextAlign.right,
+                    //   softWrap: true,
+                    //   style: TextStyle(
+                    //     color: Colors.black,
+                    //     fontSize: selectedFontSize,
+                    //     fontWeight: FontWeight.bold,
+                    //     height: 1.3,
+                    //   ),
+                    // );
+                    return Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: ftPart,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: selectedFontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: "ft",
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize:
+                                  selectedFontSize *
+                                  0.6, // Unit को font size सानो
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          TextSpan(
+                            text: " - ",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: selectedFontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: inPart,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: selectedFontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: "in",
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize:
+                                  selectedFontSize *
+                                  0.6, // Unit को font size सानो
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 6,
+                      textAlign: TextAlign.right,
+                      softWrap: true,
+                    );
+                  },
                 ),
               ),
               SizedBox(width: 2.w),
-              Text(
-                "in",
-                style: TextStyle(color: Colors.black87, fontSize: 12.sp),
-              ),
             ],
           ),
           Spacer(),
@@ -819,25 +905,59 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
         ],
       );
     }
-
+    // Normal result with adaptive scaling
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Spacer(),
         Container(
-          height: 40.h, // Fixed height
+          height: 40.h,
           constraints: BoxConstraints(maxWidth: 200.w, minWidth: 100.w),
           alignment: Alignment.bottomRight,
-          child: Text(
-            resultValue,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 28.sp,
-              fontWeight: FontWeight.bold,
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              String text = resultValue;
+              double baseFontSize = 28.sp;
+
+              List<double> fontSizes = [
+                baseFontSize,
+                baseFontSize * 0.5,
+                baseFontSize * 0.3333,
+                baseFontSize * 0.25,
+                baseFontSize * 0.2,
+                baseFontSize * 0.1667,
+              ];
+
+              double selectedFontSize = baseFontSize;
+
+              for (int i = 0; i < fontSizes.length; i++) {
+                double charWidth = fontSizes[i] * 0.6;
+                int charsPerLine = (constraints.maxWidth / charWidth).floor();
+                if (charsPerLine < 1) charsPerLine = 1;
+
+                int estimatedLines = (text.length / charsPerLine).ceil();
+                if (estimatedLines < 1) estimatedLines = 1;
+
+                if (estimatedLines <= (i + 1)) {
+                  selectedFontSize = fontSizes[i];
+                  break;
+                }
+              }
+
+              return Text(
+                text,
+                maxLines: 6,
+                textAlign: TextAlign.right,
+                softWrap: true,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: selectedFontSize,
+                  fontWeight: FontWeight.bold,
+                  height: 1.3,
+                ),
+              );
+            },
           ),
         ),
         Spacer(),
