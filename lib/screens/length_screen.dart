@@ -44,7 +44,7 @@ class _LengthScreenState extends State<LengthScreen> {
   final ScrollController _rightController = ScrollController();
 
   // Fixed height per tile
-  static const double _tileHeight = 55.0;
+  static const double _tileHeight = 76;
   static const double _listHeight = 275.0;
   static const double _paddingSize = _tileHeight * 2;
 
@@ -202,46 +202,50 @@ class _LengthScreenState extends State<LengthScreen> {
       body: Column(
         children: [
           // 1. FIXED CENTER LIST AREA
-          SizedBox(
-            height: _listHeight,
-            child: Row(
-              children: [
-                // LEFT COLUMN
-                Expanded(
-                  child: _buildCenteredList(
-                    controller: _leftController,
-                    isLeft: true,
-                    selectedIndex: fromIndex,
-                    onSelected: (index) {
-                      setState(() => fromIndex = index);
-                      // When switching to Feet-Inch, default active field to "feet"
-                      if (units[index]['name'] == 'Feet-Inch') {
-                        _activeField = "feet";
-                      }
-                    },
+          Expanded(
+            flex: 7,
+            child: SizedBox(
+              height: _listHeight,
+              child: Row(
+                children: [
+                  // LEFT COLUMN
+                  Expanded(
+                    child: _buildCenteredList(
+                      controller: _leftController,
+                      isLeft: true,
+                      selectedIndex: fromIndex,
+                      onSelected: (index) {
+                        setState(() => fromIndex = index);
+                        // When switching to Feet-Inch, default active field to "feet"
+                        if (units[index]['name'] == 'Feet-Inch') {
+                          _activeField = "feet";
+                        }
+                      },
+                    ),
                   ),
-                ),
 
-                // Divider
-                Container(width: 1, color: Colors.grey.shade300),
+                  // Divider
+                  Container(width: 1, color: Colors.grey.shade300),
 
-                // RIGHT COLUMN
-                Expanded(
-                  child: _buildCenteredList(
-                    controller: _rightController,
-                    isLeft: false,
-                    selectedIndex: toIndex,
-                    onSelected: (index) {
-                      setState(() => toIndex = index);
-                    },
+                  // RIGHT COLUMN
+                  Expanded(
+                    child: _buildCenteredList(
+                      controller: _rightController,
+                      isLeft: false,
+                      selectedIndex: toIndex,
+                      onSelected: (index) {
+                        setState(() => toIndex = index);
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
           // 2. NUMPAD
           Expanded(
+            flex: 4,
             child: Container(
               color: Colors.white,
               padding: const EdgeInsets.all(2),
@@ -336,7 +340,13 @@ class _LengthScreenState extends State<LengthScreen> {
                 },
                 child: Container(
                   height: _tileHeight,
-                  color: Colors.white,
+
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      bottom: BorderSide(color: Colors.black, width: 1),
+                    ),
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
