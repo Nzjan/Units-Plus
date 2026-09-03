@@ -1,6 +1,7 @@
 // ---------------- LENGTH SCREEN (FEET-INCH SUPPORT) ----------------
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Providers for state management
 final fromIndexProvider = StateProvider<int>((ref) => 0);
@@ -106,10 +107,10 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
   final ScrollController _leftController = ScrollController();
   final ScrollController _rightController = ScrollController();
 
-  // Fixed height per tile
-  static const double _tileHeight = 67;
-  static const double _listHeight = 275.0;
-  static const double _paddingSize = _tileHeight * 2;
+  // Fixed height per tile (responsive)
+  final double _tileHeight = 67.h;
+  final double _listHeight = 275.h;
+  final double _paddingSize = 134.h; // _tileHeight * 2
 
   @override
   void initState() {
@@ -226,9 +227,9 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Length",
-          style: TextStyle(color: Colors.white, fontSize: 20),
+          style: TextStyle(color: Colors.white, fontSize: 20.sp),
         ),
         elevation: 0,
       ),
@@ -261,7 +262,7 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                   ),
 
                   // Divider
-                  Container(width: 1, color: Colors.grey.shade300),
+                  Container(width: 1.w, color: Colors.grey.shade300),
 
                   // RIGHT COLUMN
                   Expanded(
@@ -288,7 +289,7 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
             flex: 4,
             child: Container(
               color: Colors.white,
-              padding: const EdgeInsets.all(2),
+              padding: EdgeInsets.all(2.w),
               child: Column(
                 children: [
                   Expanded(child: _buildNumpadRow(["7", "8", "9", "⌫"])),
@@ -396,13 +397,10 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border(
-                      bottom: BorderSide(color: Colors.black, width: 1),
+                      bottom: BorderSide(color: Colors.black, width: 1.w),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -411,9 +409,9 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                         alignment: Alignment.topLeft,
                         child: Text(
                           units[index]['name'],
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.black,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                         ),
                       ),
@@ -421,10 +419,7 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                         alignment: Alignment.bottomRight,
                         child: Text(
                           units[index]['symbol'],
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.grey, fontSize: 14.sp),
                         ),
                       ),
                     ],
@@ -439,7 +434,7 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
             height: _tileHeight,
             child: Container(
               color: isLeft ? const Color(0xFF1565C0) : Colors.grey.shade400,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
               child: isLeft
                   ? _buildLeftOverlay(
                       selectedIndex,
@@ -478,77 +473,178 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
                   onTap: () =>
                       ref.read(activeFieldProvider.notifier).state = "feet",
                   child: SizedBox(
+                    height: 40.h,
+                    width: 60.w,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 2,
-                              vertical: 4,
+                            height: 40.h,
+                            width: 60.w,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 2.w,
+                              vertical: 2.h,
                             ),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(6.r),
                               color: Colors.black,
                             ),
                             alignment: Alignment.bottomRight,
-                            child: Text(
-                              feetValue.isEmpty ? "0" : feetValue,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                String text = feetValue.isEmpty
+                                    ? "0"
+                                    : feetValue;
+                                double baseFontSize = 28.sp;
+
+                                // List of font sizes to try
+                                List<double> fontSizes = [
+                                  baseFontSize, // 100% - 1 line
+                                  baseFontSize * 0.5, // 50% - 2 lines
+                                  baseFontSize * 0.3333, // 33.33% - 3 lines
+                                  baseFontSize * 0.25, // 25% - 4 lines
+                                  baseFontSize * 0.2, // 20% - 5 lines
+                                  baseFontSize * 0.1667, // 16.67% - 6 lines
+                                ];
+
+                                double selectedFontSize = baseFontSize;
+                                int selectedLines = 1;
+
+                                for (int i = 0; i < fontSizes.length; i++) {
+                                  double charWidth = fontSizes[i] * 0.6;
+                                  int charsPerLine =
+                                      (constraints.maxWidth / charWidth)
+                                          .floor();
+                                  if (charsPerLine < 1) charsPerLine = 1;
+
+                                  int estimatedLines =
+                                      (text.length / charsPerLine).ceil();
+                                  if (estimatedLines < 1) estimatedLines = 1;
+
+                                  if (estimatedLines <= (i + 1)) {
+                                    selectedFontSize = fontSizes[i];
+                                    selectedLines = estimatedLines;
+                                    break;
+                                  }
+                                }
+
+                                return Text(
+                                  text,
+                                  maxLines: 6,
+                                  textAlign: TextAlign.right,
+                                  softWrap: true,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: selectedFontSize,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.3,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ),
-                        const SizedBox(width: 2),
-                        const Text(
+                        SizedBox(width: 2.w),
+                        Text(
                           "ft",
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.sp,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: 6.w),
               // Inch Field
               Expanded(
                 child: GestureDetector(
                   onTap: () =>
                       ref.read(activeFieldProvider.notifier).state = "inch",
                   child: SizedBox(
+                    height: 40.h,
+                    width: 60.w,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 2,
-                              vertical: 4,
+                            height: 40.h,
+                            width: 60.w,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 2.w,
+                              vertical: 2.h,
                             ),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(6.r),
                               color: Colors.grey,
                             ),
                             alignment: Alignment.bottomRight,
-                            child: Text(
-                              inchValue.isEmpty ? "0" : inchValue,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                String text = inchValue.isEmpty
+                                    ? "0"
+                                    : inchValue;
+                                double baseFontSize = 28.sp;
+
+                                List<double> fontSizes = [
+                                  baseFontSize,
+                                  baseFontSize * 0.5,
+                                  baseFontSize * 0.3333,
+                                  baseFontSize * 0.25,
+                                  baseFontSize * 0.2,
+                                  baseFontSize * 0.1667,
+                                ];
+
+                                double selectedFontSize = baseFontSize;
+                                int selectedLines = 1;
+
+                                for (int i = 0; i < fontSizes.length; i++) {
+                                  double charWidth = fontSizes[i] * 0.6;
+                                  int charsPerLine =
+                                      (constraints.maxWidth / charWidth)
+                                          .floor();
+                                  if (charsPerLine < 1) charsPerLine = 1;
+
+                                  int estimatedLines =
+                                      (text.length / charsPerLine).ceil();
+                                  if (estimatedLines < 1) estimatedLines = 1;
+
+                                  if (estimatedLines <= (i + 1)) {
+                                    selectedFontSize = fontSizes[i];
+                                    selectedLines = estimatedLines;
+                                    break;
+                                  }
+                                }
+
+                                return Text(
+                                  text,
+                                  maxLines: 6,
+                                  textAlign: TextAlign.right,
+                                  softWrap: true,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: selectedFontSize,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.3,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ),
-                        const SizedBox(width: 2),
-                        const Text(
+                        SizedBox(width: 2.w),
+                        Text(
                           "in",
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.sp,
+                          ),
                         ),
                       ],
                     ),
@@ -560,12 +656,54 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
         else
           Align(
             alignment: AlignmentGeometry.centerEnd,
-            child: Text(
-              inputValue.isEmpty ? "0" : inputValue,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+            child: Container(
+              constraints: BoxConstraints(maxWidth: 200.w, minWidth: 100.w),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  String text = inputValue.isEmpty ? "0" : inputValue;
+                  double baseFontSize = 28.sp;
+
+                  List<double> fontSizes = [
+                    baseFontSize,
+                    baseFontSize * 0.5,
+                    baseFontSize * 0.3333,
+                    baseFontSize * 0.25,
+                    baseFontSize * 0.2,
+                    baseFontSize * 0.1667,
+                  ];
+
+                  double selectedFontSize = baseFontSize;
+                  int selectedLines = 1;
+
+                  for (int i = 0; i < fontSizes.length; i++) {
+                    double charWidth = fontSizes[i] * 0.6;
+                    int charsPerLine = (constraints.maxWidth / charWidth)
+                        .floor();
+                    if (charsPerLine < 1) charsPerLine = 1;
+
+                    int estimatedLines = (text.length / charsPerLine).ceil();
+                    if (estimatedLines < 1) estimatedLines = 1;
+
+                    if (estimatedLines <= (i + 1)) {
+                      selectedFontSize = fontSizes[i];
+                      selectedLines = estimatedLines;
+                      break;
+                    }
+                  }
+
+                  return Text(
+                    text,
+                    maxLines: 6,
+                    textAlign: TextAlign.right,
+                    softWrap: true,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: selectedFontSize,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -576,11 +714,11 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
           children: [
             Text(
               units[selectedIndex]['name'],
-              style: const TextStyle(color: Colors.white, fontSize: 12),
+              style: TextStyle(color: Colors.white, fontSize: 12.sp),
             ),
             Text(
               units[selectedIndex]['symbol'],
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: Colors.white70, fontSize: 14.sp),
             ),
           ],
         ),
@@ -595,8 +733,8 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
     if (isFeetInch) {
       String res = resultValue;
       List<String> parts = res.split('-');
-      String ftPart = parts[0].replaceAll('ft', '');
-      String inPart = parts[1].replaceAll('in', '');
+      String ftPart = parts[0].replaceAll('ft', '0');
+      String inPart = parts[1].replaceAll('in', '0');
 
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -607,41 +745,59 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                ftPart,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+              Container(
+                height: 40.h, // Fixed height
+                constraints: BoxConstraints(maxWidth: 80.w, minWidth: 40.w),
+                alignment: Alignment.bottomRight,
+                child: Text(
+                  ftPart,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const SizedBox(width: 2),
-              const Text(
+              SizedBox(width: 2.w),
+
+              Text(
                 "ft",
-                style: TextStyle(color: Colors.black87, fontSize: 12),
+                style: TextStyle(color: Colors.black87, fontSize: 12.sp),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.w),
               Align(
                 alignment: Alignment.center,
-                child: const Text(
+                child: Text(
                   "-",
-                  style: TextStyle(color: Colors.black, fontSize: 28),
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-
-              const SizedBox(width: 8),
+              SizedBox(width: 8.w),
+              Container(
+                height: 40.h, // Fixed height
+                constraints: BoxConstraints(maxWidth: 80.w, minWidth: 40.w),
+                alignment: Alignment.bottomRight,
+                child: Text(
+                  inPart,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(width: 2.w),
               Text(
-                inPart,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 2),
-              const Text(
                 "in",
-                style: TextStyle(color: Colors.black87, fontSize: 12),
+                style: TextStyle(color: Colors.black87, fontSize: 12.sp),
               ),
             ],
           ),
@@ -651,12 +807,12 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
             children: [
               Text(
                 units[selectedIndex]['name'],
-                style: const TextStyle(color: Colors.black, fontSize: 14),
+                style: TextStyle(color: Colors.black, fontSize: 14.sp),
               ),
-              const SizedBox(width: 4),
+              SizedBox(width: 4.w),
               Text(
                 units[selectedIndex]['symbol'],
-                style: const TextStyle(color: Colors.black87, fontSize: 14),
+                style: TextStyle(color: Colors.black87, fontSize: 14.sp),
               ),
             ],
           ),
@@ -669,12 +825,19 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Spacer(),
-        Text(
-          resultValue,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+        Container(
+          height: 40.h, // Fixed height
+          constraints: BoxConstraints(maxWidth: 200.w, minWidth: 100.w),
+          alignment: Alignment.bottomRight,
+          child: Text(
+            resultValue,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 28.sp,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         Spacer(),
@@ -683,12 +846,12 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
           children: [
             Text(
               units[selectedIndex]['name'],
-              style: const TextStyle(color: Colors.black, fontSize: 14),
+              style: TextStyle(color: Colors.black, fontSize: 14.sp),
             ),
-            const SizedBox(width: 4),
+            SizedBox(width: 4.w),
             Text(
               units[selectedIndex]['symbol'],
-              style: const TextStyle(color: Colors.black87, fontSize: 14),
+              style: TextStyle(color: Colors.black87, fontSize: 14.sp),
             ),
           ],
         ),
@@ -720,18 +883,18 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
   Widget _numpadTextButton(String text, Color color) {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.all(2.0),
+        padding: EdgeInsets.all(2.w),
         child: Material(
           color: color,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(4.r),
           child: InkWell(
             onTap: () => onKeyTap(text),
             child: Center(
               child: Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 22.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -750,13 +913,15 @@ class _LengthScreenState extends ConsumerState<LengthScreen> {
   }) {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.all(2.0),
+        padding: EdgeInsets.all(2.w),
         child: Material(
           color: color,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(4.r),
           child: InkWell(
             onTap: onTap,
-            child: Center(child: Icon(icon, color: Colors.white, size: 26)),
+            child: Center(
+              child: Icon(icon, color: Colors.white, size: 26.r),
+            ),
           ),
         ),
       ),
