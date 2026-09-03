@@ -68,7 +68,8 @@ class _LengthScreenState extends State<LengthScreen> {
       double inches = double.tryParse(inchValue) ?? 0;
       double totalMeters = (feet * 0.3048) + (inches * 0.0254);
 
-      if (toIsFeetInch) return "0ft-0in"; // Same unit, result is 0
+      if (toIsFeetInch)
+        return "${feetValue}ft-${inchValue}in"; // Same unit, echo back
 
       double toFactor = units[toIndex]['factor'] as double;
       double result = totalMeters / toFactor;
@@ -293,6 +294,7 @@ class _LengthScreenState extends State<LengthScreen> {
   }
 
   // Builds a scrollable list with 2 blank spaces top/bottom, fixed center overlay
+  // FIXED: Only updates selectedIndex when scrolling is complete (finger released)
   Widget _buildCenteredList({
     required ScrollController controller,
     required bool isLeft,
@@ -301,17 +303,14 @@ class _LengthScreenState extends State<LengthScreen> {
   }) {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
-        if (notification is ScrollUpdateNotification) {
+        // Only update selection when scrolling has ended (finger released)
+        if (notification is ScrollEndNotification) {
           double offset = notification.metrics.pixels;
           int index = (offset / _tileHeight).round();
           index = index.clamp(0, units.length - 1);
 
           if (index != selectedIndex) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                onSelected(index);
-              }
-            });
+            onSelected(index);
           }
         }
         return true;
